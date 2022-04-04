@@ -1,0 +1,28 @@
+name: deploy
+
+on: push
+  branches:
+    - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+  
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with: 
+          node-version: 16.x
+      
+      # setup key
+      - run: set -eu
+      - run: mkdir "$HOME/.ssh"
+      - run: "${{secrets.key}}" > "$HOME/.ssh/key"
+      - run: chmod 600 "$HOME/.ssh/key"
+
+      # build
+      - run: npm ci
+      - run: npm run build
+
+      # deploy
+      - run: cd dist && rsync -e "ssh -i $HOME/.ssh/key -o StrictHostKeyChecking=no" --archive --compress --delete . ubuntu@ec2-18-198-51-32.eu-central-1.compute.amazonaws.com:/home/ubuntu/app-deploy 
